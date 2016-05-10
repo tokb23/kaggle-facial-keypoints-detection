@@ -14,8 +14,8 @@ LOAD = False
 TEST = True
 
 def load_model():
-	model = model_from_json(open('./model/my_model_architecture.json').read())
-	model.load_weights('./model/my_model_weights.h5')
+	model = model_from_json(open('./model/my_nn_model_architecture.json').read())
+	model.load_weights('./model/my_nn_model_weights.h5')
 	sgd = SGD(lr=0.01, decay=0.0, momentum=0.9, nesterov=True)
 	model.compile(loss='mse', optimizer=sgd)
 	print('successfully loaded')
@@ -71,8 +71,8 @@ def check_test(model):
 
 def save_model(model):
 	json_string = model.to_json()
-	open('./model/my_model_architecture.json', 'w').write(json_string)
-	model.save_weights('./model/my_model_weights.h5')
+	open('./model/my_nn_model_architecture.json', 'w').write(json_string)
+	model.save_weights('./model/my_nn_model_weights.h5')
 	print('successfully saved')
 
 def main():
@@ -81,12 +81,10 @@ def main():
 	else:
 		model, hist = nn_model()
 		plot_loss(hist)
+		save_model(model)
 
 	if TEST:
 		check_test(model)
-
-	if not LOAD:
-		save_model(model)
 
 if __name__ == '__main__':
 	main()

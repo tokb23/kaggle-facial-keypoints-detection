@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 from pandas.io.parsers import read_csv
 from sklearn.utils import shuffle
@@ -43,12 +42,5 @@ def load(test=False, cols=None):
 def load2d(test=False, cols=None):
     X, y = load(test=test)
     X = X.reshape(-1, 1, 96, 96)
-    return X, y
 
-"""
-X, y = load()
-print("X.shape == {}; X.min == {:.3f}; X.max == {:.3f}".format(
-    X.shape, X.min(), X.max()))
-print("y.shape == {}; y.min == {:.3f}; y.max == {:.3f}".format(
-    y.shape, y.min(), y.max()))
-"""
+    return X, y

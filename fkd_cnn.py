@@ -7,7 +7,10 @@ from input_data import load2d
 
 from keras.models import model_from_json
 
+from data_arg import ImageDataGenerator
+
 LOAD = False
+data_argumentation = True
 
 def load_model():
     model = model_from_json(open('./model/my_cnn_model_architecture.json').read())
@@ -44,7 +47,12 @@ def cnn_model():
     model.compile(loss='mse', optimizer=sgd)
 
     X, y = load2d()
-    hist = model.fit(X, y, nb_epoch=10, verbose=1, validation_split=0.2)
+
+    if data_argumentation:
+        datagen = ImageDataGenerator(horizontal_flip=True)
+        hist = model.fit_generator(datagen.flow(X, y), samples_per_epoch=X.shape[0], nb_epoch=10, verbose=1)
+    else:
+        hist = model.fit(X, y, nb_epoch=10, verbose=1, validation_split=0.2)
 
     return model, hist
 

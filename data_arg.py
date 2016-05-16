@@ -117,7 +117,7 @@ def flip_axis(x, y, axis):
     flip_indices = [(0, 2), (1, 3), (4, 8), (5, 9), (6, 10), (7, 11), (12, 16), (13, 17), (14, 18), (15, 19), (22, 24), (23, 25)]
 
     y[::2] = y[::2] * -1.0
-    for i, j in flip_indices:
+    for i, j in self.flip_indices:
         #_temp = np.copy(y[i])
         #y[i] = y[j]
         #y[j] = _temp

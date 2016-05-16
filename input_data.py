@@ -39,6 +39,7 @@ def load(test=False, cols=None):
 
     return X, y
 
+
 def load2d(test=False, cols=None):
     X, y = load(test=test)
     X = X.reshape(-1, 1, 96, 96)

@@ -1,0 +1,9 @@
+bin/
+lib/
+include/
+data/
+model/
+*.py[cod]
+*.json
+.DS_Store
+.Python

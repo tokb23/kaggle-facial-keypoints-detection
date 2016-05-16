@@ -2,15 +2,24 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation, Flatten, Dropout
 from keras.optimizers import SGD
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
-from keras.callbacks import EarlyStopping
+from keras.callbacks import EarlyStopping, ModelCheckpoint
 from keras.models import model_from_json
 
 from input_data import load2d
 import numpy as np
 from collections import OrderedDict
 from copy import deepcopy
+from sklearn.metrics import mean_squared_error
+import matplotlib.pyplot as plt
+import json
 
-loading = False
+# if you use gpu
+#import theano
+#theano.config.device = 'gpu'
+#theano.config.floatX = 'float32'
+
+loading = True
+training = False
 data_argumentation = True
 train_specialists = False
 fname_pretrain = False
@@ -23,7 +32,7 @@ lr_start = 0.03 # initial value of learning rate
 lr_stop = 0.0001 # final value of learning rate
 m_start = 0.9 # initial value of momentum
 m_stop = 0.99 # final value of momentum
-nb_epoch = 1000 # number of epochs for training
+nb_epoch = 1 # number of epochs for training
 batch_size=32
 
 SPECIALIST_SETTINGS = [
@@ -81,7 +90,7 @@ SPECIALIST_SETTINGS = [
     ]
 
 
-def fit_specialists(model):
+def fit_specialists(model): # need to modify
     specialists = OrderedDict()
 
     for setting in SPECIALIST_SETTINGS:
@@ -121,15 +130,20 @@ def fit_specialists(model):
 def load_model():
     model = model_from_json(open('./model/my_cnn_model_architecture.json').read())
     model.load_weights('./model/my_cnn_model_weights.h5')
+    f_loss = open('./history/my_cnn_model_loss_history.json')
+    f_val_loss = open('./history/my_cnn_model_val_loss_history.json')
+    loss = json.load(f_loss)
+    val_loss = json.load(f_val_loss)
     print('successfully loaded')
 
-    return model
+    return model, loss, val_loss
 
 
 def cnn_model():
     model = Sequential()
 
-    model.add(Convolution2D(32, 3, 3, init='glorot_uniform', border_mode='valid', input_shape=(1, 96, 96)))
+    model.add(Convolution2D(32, 3, 3, init='glorot_uniform', 
+                            border_mode='valid', input_shape=(1, 96, 96)))
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2, 2)))
     model.add(Dropout(0.1))
@@ -161,6 +175,7 @@ def train(model):
     model.compile(loss='mse', optimizer=sgd)
 
     early_stop = EarlyStopping(monitor='val_loss', patience=200, verbose=1, mode='auto')
+    #checkpoint = ModelCheckpoint(filepath = './checkpoint/my_cnn_model_weights{epoch:02d}-loss{loss:.2f}-val_loss{val_loss:.2f}.h5', monitor='val_loss', verbose=1, save_best_only=True, mode='auto')
 
     lr_decay = np.linspace(lr_start, lr_stop, nb_epoch)
     m_grow = np.linspace(m_start, m_stop, nb_epoch)
@@ -176,18 +191,26 @@ def train(model):
             y = y[perm]
             sgd.lr = float(lr_decay[i])
             sgd.momentum = float(m_grow[i])
-            print("[epoch %d]" % int(i+1))
+            print("[epoch %d]" % (i+1))
             for j in range(nb_sample / batch_size):
-                print "[batch %d]" % int(j+1)
+                print "[batch %d]" % (j+1)
                 start = j * batch_size
                 end = (j+1) * batch_size
                 X_arg, y_arg = flip_data(X[start:end], y[start:end], flip_indices)
-                hist = model.fit(X_arg, y_arg, nb_epoch=1, verbose=1, validation_split=0.2, callbacks=[early_stop])
+                hist = model.fit(X_arg, y_arg, nb_epoch=1, verbose=1, 
+                                    validation_split=0.2, callbacks=[early_stop])
+            #if i % 1000 == 0:
+                #save_model(model, hist)
     else:
         for i in range(nb_epoch):
             sgd.lr = float(lr_decay[i])
             sgd.momentum = float(m_grow[i])
-            hist = model.fit(X, y, nb_epoch=1, verbose=1, validation_split=0.2, callbacks=[early_stop])
+            hist = model.fit(X, y, nb_epoch=1, verbose=1, 
+                                validation_split=0.2, callbacks=[early_stop])
+            #if i % 1000 == 0:
+                #save_model(model, hist)
+
+    print "MSE = %f" % mean_squared_error(model.predict(X), y)
 
     return model, hist
 
@@ -203,25 +226,52 @@ def flip_data(X, y, flip_indices):
     return X, y
 
 
-def save_model(model):
-    json_string = model.to_json()
-    open('./model/my_cnn_model_architecture.json', 'w').write(json_string)
-    model.save_weights('./model/my_cnn_model_weights.h5')
+def plot_loss(loss=None, val_loss=None, hist=None):
+    if hist is not None:
+        loss = hist.history['loss']
+        val_loss = hist.history['val_loss']
+    plt.plot(loss, linewidth=3, label="train")
+    plt.plot(val_loss, linewidth=3, label="valid")
+    plt.grid()
+    plt.legend()
+    plt.xlabel("epoch")
+    plt.ylabel("loss")
+    plt.ylim(1e-4, 1e-2)
+    plt.yscale("log")
+    plt.show()
+
+
+def save_model(model, hist):
+    json_model = model.to_json()
+    open('./model/my_cnn_model_architecture.json', 'w').write(json_model)
+    model.save_weights('./model/my_cnn_model_weights.h5', overwrite=True)
+    loss = hist.history['loss']
+    val_loss = hist.history['val_loss']
+    f_loss = open('./history/my_cnn_model_loss_history.json', 'w')
+    f_val_loss = open('./history/my_cnn_model_val_loss_history.json', 'w')
+    json.dump(loss, f_loss)
+    json.dump(val_loss, f_val_loss)
     print('successfully saved')
 
 
 def main():
     if loading:
-        model = load_model()
+        model, loss, val_loss = load_model()
     else:
         model = cnn_model()
 
-    if train_specialists:
-        trained_model = fit_specialists(model)
-    else:
-        trained_model, _ = train(model)
+    if training:
+        if train_specialists:
+            trained_model = fit_specialists(model)
+        else:
+            trained_model, hist = train(model)
 
-    save_model(trained_model)
+    if loading:
+        plot_loss(loss, val_loss)
+    else:
+        plot_loss(hist)
+    
+    #save_model(trained_model, hist)
 
 
 if __name__ == '__main__':

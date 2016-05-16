@@ -10,9 +10,9 @@ import numpy as np
 from collections import OrderedDict
 from copy import deepcopy
 
-LOAD = False
+loading = False
 data_argumentation = True
-train_specialist = False
+train_specialists = False
 fname_pretrain = False
 
 flip_indices = [(0, 2), (1, 3), (4, 8), (5, 9), 
@@ -23,7 +23,7 @@ lr_start = 0.03 # initial value of learning rate
 lr_stop = 0.0001 # final value of learning rate
 m_start = 0.9 # initial value of momentum
 m_stop = 0.99 # final value of momentum
-nb_epoch = 10 # number of epochs for training
+nb_epoch = 1000 # number of epochs for training
 batch_size=32
 
 SPECIALIST_SETTINGS = [
@@ -162,8 +162,8 @@ def train(model):
 
     early_stop = EarlyStopping(monitor='val_loss', patience=200, verbose=1, mode='auto')
 
-    #lr_decay = np.linspace(lr_start, lr_stop, nb_epoch)
-    #m_grow = np.linspace(m_start, m_stop, nb_epoch)
+    lr_decay = np.linspace(lr_start, lr_stop, nb_epoch)
+    m_grow = np.linspace(m_start, m_stop, nb_epoch)
 
     X, y = load2d()
     nb_sample = X.shape[0]
@@ -174,8 +174,8 @@ def train(model):
             np.random.shuffle(perm)
             X = X[perm]
             y = y[perm]
-            #sgd.lr = lr_decay[i]
-            #sgd.momentum = m_grow[i]
+            sgd.lr = float(lr_decay[i])
+            sgd.momentum = float(m_grow[i])
             print("[epoch %d]" % int(i+1))
             for j in range(nb_sample / batch_size):
                 print "[batch %d]" % int(j+1)
@@ -185,8 +185,8 @@ def train(model):
                 hist = model.fit(X_arg, y_arg, nb_epoch=1, verbose=1, validation_split=0.2, callbacks=[early_stop])
     else:
         for i in range(nb_epoch):
-            #sgd.lr = lr_decay[i]
-            #sgd.momentum = m_grow[i]
+            sgd.lr = float(lr_decay[i])
+            sgd.momentum = float(m_grow[i])
             hist = model.fit(X, y, nb_epoch=1, verbose=1, validation_split=0.2, callbacks=[early_stop])
 
     return model, hist
@@ -211,17 +211,17 @@ def save_model(model):
 
 
 def main():
-    if LOAD:
+    if loading:
         model = load_model()
     else:
         model = cnn_model()
 
-    if train_specialist:
-        train_model = fit_specialists(model)
+    if train_specialists:
+        trained_model = fit_specialists(model)
     else:
-        train_model, _ = train(model)
+        trained_model, _ = train(model)
 
-    save_model(train_model)
+    save_model(trained_model)
 
 
 if __name__ == '__main__':

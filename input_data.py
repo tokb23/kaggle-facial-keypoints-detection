@@ -1,18 +1,19 @@
+# coding:utf-8
+
 import os
 import numpy as np
 from pandas.io.parsers import read_csv
 from sklearn.utils import shuffle
 
-
-FTRAIN = './data/training.csv'
-FTEST = './data/test.csv'
+FTRAIN = 'training.csv'
+FTEST = 'test.csv'
 
 
 def load(test=False, cols=None):
-    """Loads data from FTEST if *test* is True, otherwise from FTRAIN.
+    '''Loads data from FTEST if *test* is True, otherwise from FTRAIN.
     Pass a list of *cols* if you're only interested in a subset of the
     target columns.
-    """
+    '''
     fname = FTEST if test else FTRAIN
     df = read_csv(os.path.expanduser(fname))  # load pandas dataframe
 
@@ -23,7 +24,7 @@ def load(test=False, cols=None):
     if cols:  # get a subset of columns
         df = df[list(cols) + ['Image']]
 
-    #print(df.count())  # prints the number of values for each column
+    # print(df.count())  # prints the number of values for each column
     df = df.dropna()  # drop all rows that have missing values in them
 
     X = np.vstack(df['Image'].values) / 255.  # scale pixel values to [0, 1]
@@ -41,7 +42,7 @@ def load(test=False, cols=None):
 
 
 def load2d(test=False, cols=None):
-    X, y = load(test=test)
+    X, y = load(test=test, cols=cols)
     X = X.reshape(-1, 1, 96, 96)
 
     return X, y

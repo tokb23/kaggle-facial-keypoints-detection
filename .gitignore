@@ -1,9 +1,7 @@
-bin/
-lib/
-include/
-data/
-model/
+training.csv
+test.csv
 *.py[cod]
 *.json
+*.h5
 .DS_Store
 .Python

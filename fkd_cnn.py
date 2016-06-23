@@ -6,16 +6,14 @@ from keras.optimizers import SGD
 from keras.layers.convolutional import Convolution2D, MaxPooling2D
 from keras.callbacks import EarlyStopping, LearningRateScheduler
 from keras.preprocessing.image import ImageDataGenerator
-# from keras.models import model_from_json
 
-from input_data import load2d
 import numpy as np
+import matplotlib.pyplot as plt
+from input_data import load2d
 from collections import OrderedDict
 from sklearn.cross_validation import train_test_split
-import matplotlib.pyplot as plt
-import json
 
-# if you use gpu
+# If you use gpu when using theano backend
 # import theano
 # theano.config.device = 'gpu'
 # theano.config.floatX = 'float32'
@@ -97,18 +95,6 @@ class FlippedImageDataGenerator(ImageDataGenerator):
         return X_batch, y_batch
 
 
-def load_model():
-    # model = model_from_json(open('my_cnn_model_architecture.json').read())
-    # model.load_weights('my_cnn_model_weights.h5')
-    f_loss = open('my_cnn_model_loss_history.json')
-    f_val_loss = open('my_cnn_model_val_loss_history.json')
-    loss = json.load(f_loss)
-    val_loss = json.load(f_val_loss)
-    print('successfully loaded')
-
-    return loss, val_loss
-
-
 def cnn_model():
     model = Sequential()
 
@@ -141,7 +127,7 @@ def cnn_model():
 def fit_model():
     start = 0.03
     stop = 0.001
-    nb_epoch = 3000
+    nb_epoch = 10000
     PRETRAIN = False
     learning_rate = np.linspace(start, stop, nb_epoch)
 
@@ -154,7 +140,7 @@ def fit_model():
         model.load_weights('my_cnn_model_weights.h5')
     sgd = SGD(lr=start, momentum=0.9, nesterov=True)
     model.compile(loss='mse', optimizer=sgd)
-    lr_decay = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]))
+    change_lr = LearningRateScheduler(lambda epoch: float(learning_rate[epoch]))
     early_stop = EarlyStopping(patience=100)
 
     flipgen = FlippedImageDataGenerator()
@@ -162,10 +148,11 @@ def fit_model():
                             samples_per_epoch=X_train.shape[0],
                             nb_epoch=nb_epoch,
                             validation_data=(X_test, y_test),
-                            callbacks=[lr_decay, early_stop])
+                            callbacks=[change_lr, early_stop])
 
-    plot_loss(hist)
-    save_model(model, hist)
+    model.save_weights('my_cnn_model_weights.h5', overwrite=True)
+    np.savetxt('my_cnn_model_loss.csv', hist.history['loss'])
+    np.savetxt('my_cnn_model_val_loss.csv', hist.history['val_loss'])
 
 
 def fit_specialists():
@@ -205,49 +192,33 @@ def fit_specialists():
                                 validation_data=(X_test, y_test),
                                 callbacks=[lr_decay, early_stop])
 
+        model.save_weights('my_cnn_model_{}_weights.h5'.format(cols[0]))
+        np.savetxt('my_cnn_model_{}_loss.csv'.format(cols[0]), hist.history['loss'])
+        np.savetxt('my_cnn_model_{}_val_loss.csv'.format(cols[0]), hist.history['val_loss'])
+
         specialists[cols] = model
 
-        # save history
 
+def plot_loss():
+    loss = np.loadtxt('my_cnn_model_loss.csv')
+    val_loss = np.loadtxt('my_cnn_model_val_loss.csv')
 
-def plot_loss(loss=None, val_loss=None, hist=None):
-    if hist is not None:
-        loss = hist.history['loss']
-        val_loss = hist.history['val_loss']
     plt.plot(loss, linewidth=3, label='train')
     plt.plot(val_loss, linewidth=3, label='valid')
     plt.grid()
     plt.legend()
     plt.xlabel('epoch')
     plt.ylabel('loss')
-    plt.ylim(1e-4, 1e-2)
+    plt.ylim(1e-3, 1e-2)
     plt.yscale('log')
     plt.show()
-
-
-def save_model(model=None, hist=None):
-    if model is not None:
-        # json_model = model.to_json()
-        # open('my_cnn_model_architecture.json', 'w').write(json_model)
-        model.save_weights('my_cnn_model_weights.h5', overwrite=True)
-
-    if hist is not None:
-        loss = hist.history['loss']
-        val_loss = hist.history['val_loss']
-        f_loss = open('my_cnn_model_loss_history.json', 'w')
-        f_val_loss = open('my_cnn_model_val_loss_history.json', 'w')
-        json.dump(loss, f_loss)
-        json.dump(val_loss, f_val_loss)
-
-    print('successfully saved')
 
 
 def main():
     fit_model()
     fit_specialists()
 
-    # loss, val_loss = load_model()
-    # plot_loss(loss, val_loss)
+    # plot_loss()
 
 
 if __name__ == '__main__':

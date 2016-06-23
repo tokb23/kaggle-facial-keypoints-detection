@@ -4,8 +4,9 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Activation
 from keras.optimizers import SGD
 
-from input_data import load
+import numpy as np
 import matplotlib.pyplot as plt
+from input_data import load
 
 
 def nn_model():
@@ -20,6 +21,7 @@ def nn_model():
 def plot_loss(hist):
     loss = hist.history['loss']
     val_loss = hist.history['val_loss']
+
     plt.plot(loss, linewidth=3, label='train')
     plt.plot(val_loss, linewidth=3, label='valid')
     plt.grid()
@@ -50,13 +52,6 @@ def check_test(model):
     plt.show()
 
 
-def save_model(model):
-    # json_string = model.to_json()
-    # open('my_nn_model_architecture.json', 'w').write(json_string)
-    model.save_weights('my_nn_model_weights.h5')
-    print('successfully saved')
-
-
 def main():
     PRETRAIN = False
 
@@ -70,9 +65,12 @@ def main():
 
     hist = model.fit(X, y, nb_epoch=1000, verbose=1, validation_split=0.2)
 
-    plot_loss(hist)
-    check_test(model)
-    save_model(model)
+    model.save_weights('my_nn_model_weights.h5')
+    np.savetxt('my_nn_model_loss.csv', hist.history['loss'])
+    np.savetxt('my_nn_model_val_loss.csv', hist.history['val_loss'])
+
+    # plot_loss(hist)
+    # check_test(model)
 
 
 if __name__ == '__main__':

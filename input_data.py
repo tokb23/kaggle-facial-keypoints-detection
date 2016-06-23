@@ -2,8 +2,8 @@
 
 import os
 import numpy as np
-from pandas.io.parsers import read_csv
 from sklearn.utils import shuffle
+from pandas.io.parsers import read_csv
 
 FTRAIN = 'training.csv'
 FTEST = 'test.csv'

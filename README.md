@@ -3,6 +3,7 @@ This is an implementation of Kaggle Facial Keypoints Detection in Keras.
 
 ## Requirements
 - keras
+- theano or tensorflow
 - hdf5
 - h5py
 - pandas
